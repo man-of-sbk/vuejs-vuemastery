@@ -1041,5 +1041,252 @@ This could be useful if you wanted to slot in multiple elements into the same sl
 </MediaBox>
 ```
 
+# API calls with Axios
+when we’re ready to deploy our application, we’ll run `npm run build` which will package-up our application with all our components and libraries into the `dist` directory.
 
+## The Library to Make API Calls
+Vue doesn’t have an official library for making calls to APIs. There are other JavaScript libraries that do a great job at doing this, like `Axios`, a `promise-based` HTTP client for the browser and node.js. Here are some of its features:
 
+* Do GET, POST, PUT, and DELETE requests
+* Add authentication to each request
+* Set timeouts if requests take too long
+* Configure defaults for every request
+* Intercept requests to create middleware
+* Handle errors and cancel requests properly
+* Properly serialize and deserialize requests & responses
+
+## The Basic Get Request
+
+```js
+axios.get('https://example.com/events') // Call out to this URL
+  .then(response =>
+    console.log(response.data);  // When the response returns, log it to the console
+  })
+  .catch(error => 
+    console.log(error);  // If an error is returned log it to the console
+  })
+```
+
+## Mocking up the API Server
+we are going to use [JSON server](https://github.com/typicode/json-server).
+
+store this `db.json` file at the root of our application (`/application/db.json`)
+
+```json
+{
+  "events": [
+    {
+      "id": 1,
+      "title": "Beach Cleanup",
+      "date": "Aug 28 2018",
+      "time": "10:00",
+      "location": "Daytona Beach",
+      "description": "Let's clean up this beach.",
+      "organizer": "Adam Jahr",
+      "category": "sustainability",
+      "attendees": [
+        {
+          "id": "abc123",
+          "name": "Adam Jahr"
+        },
+        {
+          "id": "def456",
+          "name": "Gregg Pollack"
+        },
+        {
+          "id": "ghi789",
+          "name": "Beth Swanson"
+        },
+        {
+          "id": "jkl101",
+          "name": "Mary Gordon"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Park Cleanup",
+      "date": "Nov 12 2018",
+      "time": "12:00",
+      "location": "132 N Magnolia Street, Orlando, Florida",
+      "description": "We're going to clean up this park.",
+      "organizer": "Adam Jahr",
+      "category": "nature",
+      "attendees": [
+        {
+          "id": "ghi789",
+          "name": "Beth Swanson"
+        },
+        {
+          "id": "jkl101",
+          "name": "Mary Gordon"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Pet Adoption Day",
+      "date": "Dec 2 2018",
+      "time": "12:00",
+      "location": "132 N Magnolia Street, Orlando, Florida",
+      "description": "Help animals find new homes.",
+      "organizer": "Gregg Pollack",
+      "category": "animal welfare",
+      "attendees": [
+        {
+          "id": "abc123",
+          "name": "Adam Jahr"
+        },
+        {
+          "id": "ghi789",
+          "name": "Beth Swanson"
+        },
+        {
+          "id": "jkl101",
+          "name": "Mary Gordon"
+        }
+      ]
+    }
+  ]
+}
+```
+
+```shell
+npm install -g json-server
+```
+
+Now to spin up this little API server we just run:
+
+```shell
+json-server --watch db.json
+```
+
+When we run this line we should see:
+
+```shell
+\{^_^}/ hi!
+
+Loading db.json
+Done
+
+Resources
+http://localhost:3000/events
+
+Home
+http://localhost:3000
+
+Type s + enter at any time to create a snapshot of the database
+Watching...
+```
+
+If we call up our browser and head over to `http://localhost:3000/events` we should see all of our events listed in json.
+
+## Install Axios
+This command will check the registry to see if any (or, specific) installed packages are currently outdated.
+
+```shell
+npm outdated
+```
+
+To update each of the outdated one, all I need to run is:
+
+```shell
+npm update <package>
+```
+
+Or I can just update all of them by simply running:
+
+```shell
+npm update
+```
+
+install Axios by running
+
+```shell
+npm install axios
+```
+
+## Do the actual API call using Axios
+
+```html
+<!-- EventList.vue -->
+...
+<script>
+import EventCard from '@/components/EventCard.vue'
+import axios from 'axios' // <--- brings in the axios library
+
+export default {
+  components: {
+    EventCard
+  },
+  created() {
+    axios
+      .get('http://localhost:3000/events')  // Does a get request
+      .then(response => {
+        console.log(response.data) // For now, logs out the response
+      })
+      .catch(error => {
+        console.log('There was an error:', error.response) // Logs out the error
+      })
+  }
+}
+</script>
+```
+
+Notice:
+
+```js
+created: function() { ... }
+```
+
+This line of code is telling Vue, “When this component is `first instantiated`, but `before it’s drawn on the page` (`rendered`), run this code.” `Created` is one of many [life-cycle hooks](https://vuejs.org/v2/guide/instance.html#Instance-Lifecycle-Hooks).
+
+## Reorganizing Our Code
+
+in our application we’re going to make multiple API calls. So for better [separation of concerns](https://en.wikipedia.org/wiki/Separation_of_concerns), move our `Axios API calls` into a `service file`. We’ll create a `services` directory (`/src/services`).
+
+```js
+// /src/services/EventService.js
+
+import axios from 'axios'
+
+const apiClient = axios.create({  
+  baseURL: `http://localhost:3000`,
+  withCredentials: false, // This is the default
+  headers: {
+    Accept: 'application/json',
+    'Content-Type': 'application/json'
+  }
+})
+
+export default {
+  getEvents() {
+    return apiClient.get('/events')
+  },
+  getEvent(id) {
+    return apiClient.get('/events/' + id)
+  }
+}
+```
+
+Notice here I’m instantiating `axios` with some configuration and storing that in a `constant`. This is good because now our app will only ever have `one axios instance`. I’ve also added some configuration. This is where you might need to add `authorization keys` if the API you want to use has `security`. You’ll want to consult the [Axios documentation](https://github.com/axios/axios) for the configuration options.
+
+to use the service:
+
+```js
+import EventService from '@/services/EventService.js';
+
+...
+
+created() {
+  EventService.getEvents() // <-----
+    .then(response => {
+```
+
+**note**: If we are calling an API, define an object to hold the response of itself and use the response to render the template. There would be cases when an expression in the template have a reference to a property of an object, a property of an API's response. However, the api is going to takes a while after providing us its response, causing the object property referencing to produce an error for referencing a property of an `undefined` value (referencing to a primitive value directly from the API's response will not cause this error, since the we are referencing an `undefined` property of an defined object, the one, used to hold the response value). To prevent this from happening, use a `ternary if` operator. 
+
+```html
+<span class="badge -fill-gradient">{{ event.attendees ? event.attendees.length : 0 }}</span>
+```
+
+Obviously, there are other ways to solve this problem. We could not render the template until our Axios call is returned. We could also ensure attendees is `initialized` as an `empty array`. We could also add a `loading spinner` while we’re waiting for data to return. If you Google around you’ll find many different ways to implement this.

@@ -4,7 +4,7 @@
     <h4 class="title">{{ event.title }}</h4>
     <span>{{ event.attendees.length }} attending</span>
   </div> -->
-  <router-link class="event-link" :to="{ name: 'event-show', params: { id: '1' } }"> 
+  <router-link class="event-link" :to="{ name: 'event-show', params: { id: event.id } }"> 
     <div class="event-card -shadow">
       <span class="eyebrow">@{{ event.time }} on {{ event.date }}</span>
       <h4 class="title">{{ event.title }}</h4>
@@ -38,19 +38,22 @@
 
 <script>
 export default {
-  data() {
-    return {
-      event: {
-        id: 1,
-        title: 'Beach Cleanup',
-        date: 'Tue May 15 2018',
-        time: '6:00',
-        attendees: [
-          { id: 'abc123', name: 'Adam Jahr' },
-          { id: 'def456', name: 'Gregg Pollack' }
-        ]
-      }
-    }
-  }
+  props: {
+    event: Object
+  },
+  // data() {
+  //   return {
+  //     event: {
+  //       id: 1,
+  //       title: 'Beach Cleanup',
+  //       date: 'Tue May 15 2018',
+  //       time: '6:00',
+  //       attendees: [
+  //         { id: 'abc123', name: 'Adam Jahr' },
+  //         { id: 'def456', name: 'Gregg Pollack' }
+  //       ]
+  //     }
+  //   }
+  // }
 }
 </script>
