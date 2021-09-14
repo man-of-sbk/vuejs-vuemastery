@@ -429,6 +429,27 @@ new Vue({
 // ...
 ```
 
+**note**: `Vue` instances themselves do not have the `router` property, the property is added by the `Vue Router` lib itself. FOr more information on how to add custom properties to the `option` argument object of `Vue` instances, [check this](https://vuejs.org/v2/api/#vm-options). We can see the lib is accessing the `router` property [here](https://github.com/vuejs/vue-router/blob/dev/src/install.js):
+
+```js
+  Vue.mixin({
+    beforeCreate () {
+      if (isDef(this.$options.router)) { // <---
+        this._routerRoot = this
+        this._router = this.$options.router // <---
+        this._router.init(this)
+        Vue.util.defineReactive(this, '_route', this._router.history.current)
+      } else {
+        this._routerRoot = (this.$parent && this.$parent._routerRoot) || this
+      }
+      registerInstance(this, this)
+    },
+    destroyed () {
+      registerInstance(this)
+    }
+  })
+```
+
 ### App.vue
 Looking within the `app.vue` file, there’s a div with the id of `nav` and inside of it there are some `router-links`, which are `global components` we have access to.
 

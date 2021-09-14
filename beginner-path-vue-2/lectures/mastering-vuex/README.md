@@ -66,4 +66,97 @@ Our `Action` here has multiple steps. First, it’ll `commit` the `Mutation` to 
 
 * `actions` is similar to `mutations`, just functions. However, letting users to directly update `states` produces the problem that `Vuex` is trying to solve, that is no proper `state-change tracking`, it would be hard to track where states are changed. Thus, `mutations` have its own benefits here. Moreover, separating the `mutations` and `actions` would be easier to handle `asynchronous operations`, since tracking when asynchronous operations return is a no easy task. In this case, `mutations` role would be to track when asynchronous operations end. In addition, `actions` also play the role of making state changes easier to track in operations happening in the application layer (not the Vuex store layer).
 
+# State & Getters
+## Accessing State
+If we take a look at our `main.js` file, we see we’re importing our `Vuex` `store` file, and providing it to our `root Vue instance`. This will be set up for us if we selected `Vuex` when creating our project with the `Vue CLI`.
+
+```js
+import store from './store' 
+
+new Vue({
+  router,
+  store, // <-- injecting the store for global access
+  render: h => h(App)
+}).$mount('#app')
+```
+
+This makes the `store` globally accessible throughout our app by `injecting` it into every component. This way, `any component` can access the `store` and the properties on it (such as `State`, `Actions`, `Mutations` and `Getters`) by using `$store`.
+
+**note**: `Vue` instances themselves do not have the `store` property, the property is added by the `Vuex` lib itself. FOr more information on how to add custom properties to the `option` argument object of `Vue` instances, [check this](https://vuejs.org/v2/api/#vm-options). We can see the lib is accessing the `store` property [here](https://github.com/vuejs/vuex/blob/dev/src/mixin.js):
+
+```js
+  function vuexInit () {
+    const options = this.$options // <---
+    // store injection
+    if (options.store) {
+      this.$store = typeof options.store === 'function'
+        ? options.store()
+        : options.store
+    } else if (options.parent && options.parent.$store) {
+      this.$store = options.parent.$store
+    }
+  }
+```
+
+Back to our section content, if our `store` looks like this:
+
+```js
+// src/store.js
+import Vue from 'vue'
+import Vuex from 'vuex'
+
+Vue.use(Vuex)
+
+export default new Vuex.Store({
+  state: { // <---
+    user: { id: 'abc123', name: 'Adam Jahr' }
+  },
+  mutations: {},
+  actions: {}
+})
+```
+
+Then we can access the `user` state like this:
+
+```html
+// EventCreate.vue
+<template>
+  <h1>Create Event, {{ $store.state.user.name }}</h1>
+</template>
+```
+
+Sure, we could write `this.$store.state.user.name` all over the place… Or we could write it once, in a computed property, called userName.
+
+```js
+import Vue from 'vue'
+import Vuex from 'vuex'
+
+Vue.use(Vuex)
+
+export default new Vuex.Store({
+  state: {
+    user: { id: 'abc123', name: 'Adam Jahr' }
+  },
+  mutations: {},
+  actions: {},
+  computed: {
+    userName() { // <---
+      return this.$store.state.user.name
+    }
+  }
+})
+```
+
+```html
+<template>
+  <div>
+      <h1>Create an Event, {{ userName }}</h1>
+      <p>This event is created by {{ userName }}</p>
+  </div>
+</template>
+```
+
+And if we needed to use it in a method of our component, we could simply say `this.userName`.
+
+## The `mapState` Helper
 
