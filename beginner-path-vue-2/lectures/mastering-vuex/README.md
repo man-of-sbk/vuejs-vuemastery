@@ -125,27 +125,7 @@ Then we can access the `user` state like this:
 </template>
 ```
 
-Sure, we could write `this.$store.state.user.name` all over the place… Or we could write it once, in a computed property, called userName.
-
-```js
-import Vue from 'vue'
-import Vuex from 'vuex'
-
-Vue.use(Vuex)
-
-export default new Vuex.Store({
-  state: {
-    user: { id: 'abc123', name: 'Adam Jahr' }
-  },
-  mutations: {},
-  actions: {},
-  computed: {
-    userName() { // <---
-      return this.$store.state.user.name
-    }
-  }
-})
-```
+what if we needed to use the user’s name in multiple places within our `component`? Sure, we could write `this.$store.state.user.name` all over the place… Or we could write it once, in a `computed` property, called `userName`.
 
 ```html
 <template>
@@ -154,6 +134,16 @@ export default new Vuex.Store({
       <p>This event is created by {{ userName }}</p>
   </div>
 </template>
+
+<script>
+export default {
+  computed: {
+    userName() { // <---
+      return this.$store.state.user.name
+    }
+  }
+}
+</script>
 ```
 
 And if we needed to use it in a method of our component, we could simply say `this.userName`.
