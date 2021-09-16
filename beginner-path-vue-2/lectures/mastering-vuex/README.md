@@ -62,6 +62,8 @@ Below that we have a `Mutation` to switch our `isLoading` state between `true` a
 Our `Action` here has multiple steps. First, it’ll `commit` the `Mutation` to set the `isLoading` status to `true`. Then it’ll make an API call, and when the response returns, it will `commit` the `Mutation` to set the `isLoading` status to `false`. Finally it’ll commit the `Mutation` to set the state of our `todos` with the response from our API.
 
 **note**:
+* `mutations` can be directly commited inside components' methods `this.$store.commit('INCREMENT_COUNT')`, but with `actions`, we can share common logic which commit `mutations` for us to multiple components.
+
 * **Mutations Must Be Synchronous**, any `state mutation` performed in the callback of an asynchronous `mutation` is essentially `un-trackable`!. `Mutations` are designed and created (by Vuex) to update `states` `whenever executed`, think of them like `setters`. Thus, there's `no need` to know when an asynchronous operation ends inside `mutations`.
 
 * `actions` is similar to `mutations`, just functions. However, letting users to directly update `states` produces the problem that `Vuex` is trying to solve, that is no proper `state-change tracking`, it would be hard to track where states are changed. Thus, `mutations` have its own benefits here. Moreover, separating the `mutations` and `actions` would be easier to handle `asynchronous operations`, since tracking when asynchronous operations return is a no easy task. In this case, `mutations` role would be to track when asynchronous operations end. In addition, `actions` also play the role of making state changes easier to track in operations happening in the application layer (not the Vuex store layer).
@@ -325,3 +327,115 @@ export default new Vuex.Store({
 This example was just to demonstrate the power of passing in getters to a Getter, there are better way to write the `activeTodosCount` getter.
 
 ## Dynamic Getters
+we can creat `dynamic getters` by returning a function, accepting arguments. For example, if we had an array of events, we could retrieve an event by `id` like so:
+
+```js
+import Vue from 'vue'
+import Vuex from 'vuex'
+
+Vue.use(Vuex)
+
+export default new Vuex.Store({
+  state: {
+    events: [
+      { id: 1, title: '...', organizer: '...' },
+      { id: 2, title: '...', organizer: '...' },
+      { id: 3, title: '...', organizer: '...' },
+      { id: 4, title: '...', organizer: '...' }
+    ]
+  },
+  getters: {
+    getEventById: state => id => { // <---
+      return state.events.find(event => event.id === id)
+    }
+  }
+})
+```
+
+```html
+<template>
+  <div>
+      <h1>Create an Event, {{ user.name }}</h1>
+      <p>This event is created by {{ user.id }}</p>
+
+      <!-- use the computed property here -->
+      <p>{{ getEvent(1) }}</p>
+  </div>
+</template>
+
+<script>
+import { mapState } from 'vuex'
+
+export default {
+  computed: {
+    getEvent() { // <--- a computed property returning the function "getEventById", returned by the "getEventById" getter
+      return this.$store.getters.getEventById
+    },
+    ...mapState(['categories', 'user'])
+  }
+}
+</script>
+```
+
+## The `mapGetters` Helper
+Just like `accessing State` with `mapState`, we can map `Getters` to functions with the `mapgetters` helper, the types of arguments that the `mapGetter` helper receives are similar with the `mapState` one.
+
+```html
+<template>
+  <div>
+      <h1>Create an Event, {{ user.name }}</h1>
+      <p>This event is created by {{ user.id }}</p>
+      <p>{{ getEventById(1) }}</p>
+  </div>
+</template>
+
+<script>
+import { mapState, mapGetters } from 'vuex'
+
+export default {
+  computed: {
+    ...mapGetters(['getEventById']),
+    ...mapState(['categories', 'user'])
+  }
+}
+</script>
+```
+
+# Mutations & Actions Pt. 1
+we can use Mutations to `update`, or `mutate`, our `State`.
+
+```js
+// store.js
+
+...
+  state: {
+    count: 0
+  },
+  mutations: {
+    INCREMENT_COUNT(state) {
+      state.count += 1
+    }
+  }
+```
+
+As you can see, our `INCREMENT_COUNT` mutation is taking in our Vuex `state` as an argument and using it to increment the `count`.
+
+Now, Inside our `EventCreate` component, we’ll can commit the mutation:
+
+```html
+<template>
+  <button @click="incrementCount">Increment</button>
+</template>
+
+<script>
+  export default {
+    methods: {
+      incrementCount() {
+        this.$store.commit('INCREMENT_COUNT');
+      }
+    }
+  }
+</script>
+```
+
+
