@@ -327,7 +327,7 @@ export default new Vuex.Store({
 This example was just to demonstrate the power of passing in getters to a Getter, there are better way to write the `activeTodosCount` getter.
 
 ## Dynamic Getters
-we can creat `dynamic getters` by returning a function, accepting arguments. For example, if we had an array of events, we could retrieve an event by `id` like so:
+we can creat `dynamic getters` by returning a function and pass arguments to the function. For example, if we had an array of events, we could retrieve an event by `id` like so:
 
 ```js
 import Vue from 'vue'
@@ -438,4 +438,87 @@ Now, Inside our `EventCreate` component, we’ll can commit the mutation:
 </script>
 ```
 
+Checking the `Vue DevTools`, visit the `Vuex` tab, we can see our `count` is being updated. In addition, the `INCREMENT_COUNT` `mutation calls` are logged in the `DevTools` as well.
+
+![](images/1.png)
+
+If we click on `Base State`, we’re able to `see` the `State` of our app `prior to` the `INCREMENT_COUNT Mutation` being committed. **Note** that the app's `states` will not be reverted in `real time` as we select `previously commited mutations`.
+
+![](images/2.png)
+![](images/3.png)
+
+**note**:  If you’re wondering why our `Mutation` is in all `capital letters`, that’s because it’s common within `Flux-based` patterns to put them in all caps. This is optional.
+
+## Dynamic Mutations
+We can pass a payload to a `Mutation` to make it `dynamic`.
+
+```js
+// store.js
+
+...
+  state: {
+    count: 0
+  },
+  mutations: {
+    INCREMENT_COUNT(state, value) { // the "mutation" can now access a passed in argument, presented by the "value" argument
+      state.count += value
+    }
+  }
+```
+
+```js
+export default {
+  data() {
+    return {
+      incrementBy: 1
+    }
+  },
+  methods: {
+    incrementCount() {
+      this.$store.commit('INCREMENT_COUNT', this.incrementBy) // <--- pass the "incrementBy" data to the "INCREMENT_COUNT" mutation's handler 
+    }
+  }
+}
+```
+
+## Actions
+While Vuex `Mutations` are `synchronous`, meaning they will happen one after the other, `Actions` can be `asynchronous`. We can use `Actions` to wrap some `business logic` around a `Mutation`, or `Mutations`.
+
+for example, if we only wanted to update the `count` if our app has a `user`, we could write:
+
+```js
+// store.js
+
+  actions: {
+    updateCount({ state, commit }, incrementBy) {
+      if (state.user) {
+        commit('INCREMENT_COUNT', incrementBy)
+      } 
+  }
+```
+
+note that It is using `object destructuring` to get `state` and `commit` from the `Vuex` `context object`: `{ state, commit }`.
+
+The `context` object is the `first argument` of any `Action`, and it exposes the `same set of properties` that are on the `store instance` (`state`, `mutations`, `actions`, `getters`). So you can call `context.commit` to commit a `mutation`, for example. Or say `context.state.count` to get the value of the `count` State.
+
+Additionally, `updateCount` is taking in the `payload` value. The payload is `the second argument` of all `Actions`.
+
+Now, within our `component`, we’d `dispatch` the `Action`.
+
+```js
+// component1.vue
+
+...
+  methods: {
+    incrementCount() {
+      this.$store.dispatch('updateCount', this.incrementBy)
+    },
+  }
+```
+
+## Adding to Our Example App
+
+```shell
+npm install vuejs-datepicker --save
+```
 
