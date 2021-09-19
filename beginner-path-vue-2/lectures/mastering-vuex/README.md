@@ -516,6 +516,75 @@ Now, within our `component`, we’d `dispatch` the `Action`.
   }
 ```
 
+**note**: the `this.$store.dispatch` method `always` returns a `Promise`, which always `resolve` the returned value of the `action`. Thus, if we return a `Promise`, we can call `.then` on the `.dispatch` method in our `component's method` so as to wait for the async operation inside the `Promise` resolves. For example:
+
+```js
+// store.js
+
+import Vue from 'vue'
+import Vuex from 'vuex'
+import EventService from '@/services/EventService.js'
+
+Vue.use(Vuex)
+
+export default new Vuex.Store({
+  actions: {
+    createEvent({ commit }, event) {
+      /**
+       * the "EventService.postEvent" method will make an api request when the "createEvent" action is called.
+      */
+      return EventService.postEvent(event).then(() => {
+        commit('ADD_EVENT', event.data)
+      })
+    }
+  }
+})
+```
+
+```js
+// component.vue
+...
+methods: {
+  createEvent() {
+    this.$store
+      .dispatch('createEvent', this.event)
+      .then(() => { // <--- wait until the "postEvent" api responses
+        this.event = this.createFreshEventObject()
+      })
+      .catch(() => {
+        console.log('There was a problem creating your event.')
+      })
+  },
+}
+```
+
+**note**: the `this.$store.commit` method always return `undefined`.
+
+## routing inside components
+
+we can use 
+
+```js
+// component.vue
+...
+methods: {
+  createEvent() {
+    this.$store
+      .dispatch('createEvent', this.event)
+      .then(() => {
+        this.$router.push({ // <---
+          name: 'event-show',
+          params: { id: this.event.id }
+        })
+        this.event = this.createFreshEventObject()
+      })
+      .catch(() => {
+        console.log('There was a problem creating your event.')
+      })
+  },
+}
+```
+
 ## Adding to Our Example App
 
 ```shell
