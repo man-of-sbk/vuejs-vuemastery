@@ -591,3 +591,167 @@ methods: {
 npm install vuejs-datepicker --save
 ```
 
+# Mutations & Actions Pt. 2
+`json-server` actually has built-in [API pagination](https://github.com/typicode/json-server#paginate).  If we send it `_limit` as a parameter we can limit the number of items we show on a page, and `_page` will only give us the data on our `particular page`. So if we construct a URL like so: `/events?_limit=3&_page=2` our API will return 3 events per page, and will give us the events to list on page 2.
+
+It would be greate if we knew how many events `we have total`. `json-server` is actually giving us this data on each event `request` listing as `a header`. We can see this by looking at the `Chrome DevTools → Network tab`, and inspecting one of our `API calls`. We’ll see:
+
+```shell
+X-Total-Count: 37
+```
+
+inside our Vuex `fetchEvents` action we could print this with:
+
+```js
+...
+fetchEvents({ commit }, { perPage, page }) {
+  EventService.getEvents(perPage, page)
+    .then(response => {
+      console.log('Total events are ' + response.headers['x-total-count'])
+      commit('SET_EVENTS', response.data)
+})
+...
+```
+
+## Solution: Updating our router view
+since doing `router navigation with query params` like below will not make `router-based rendered components`, ones rendered by the `router-view` component to be re-rendered
+
+```html
+<router-link :to="{ name: 'event-list', query: { page: page + 1 } }">Next Page</router-link>
+```
+
+we could use `:key` to push a `router-based rendered components` to be `re-rendered` as the `query params` change.
+
+```html
+<template>
+  <div id="app">
+    <router-view :key="$route.fullPath"/>
+  </div>
+</template>
+```
+
+# How does :key work
+[full tutorial here](https://codelistic.com/how-and-why-to-use-the-key-attribute-in-vuejs-v-for-loops)
+
+## How VueJS renders data in HTML templates:
+`conceptually speaking`, VueJS renders `changes in data`.
+
+```html
+<h1>{{ blogPostTitle }}</h1>
+```
+
+Now imagine that the value of the variable `blogPostTitle` changes to another value. By default, VueJS is going to `optimize` this operation by `patching` the `<h1>` element, meaning that it’s going to `modify` the value (**content**) of the `element` that’s already there.
+
+## ‘key’ special attribute in VueJS
+In simple cases like this, `patching the element in-place` like described above is exactly what we want, but for certain other cases we want to give an extra `“hint”` to the VueJS virtual DOM algorithm to `avoid patching`, and instead `recreate the whole DOM element` (delete and create). For that purpose, we use the `:key` attribute.
+
+```html
+<h1 :key="blogPostTitle">{{ blogPostTitle }}</h1>
+```
+
+This tells the algorithm that whenever the `key` for the `<h1>` changes (which is set to `blogPostTitle`), it should `completely recreate the whole element`. In this example, it’s each time the value of the variable `blogPostTitle` itself changes.
+
+## What can happen if we don’t use ‘:key’ in v-for ?
+
+```html
+<div id="app">
+  <todo-item v-for="todo in todos" :item="todo"> 
+  </todo-item>
+
+  <button @click="addTodo">
+    Add new item
+  </button>
+</div>
+```
+
+The Vue app is defined like this:
+
+```js
+new Vue({
+  el: "#app",
+  methods: {
+      addTodo() {
+        this.todos.unshift(
+            { id: 2000, text: 'Write article' },
+      );
+    },
+  },
+  data() {
+    return {
+      todos: [
+        { id: 1000, text: "Decide on article topic" },
+        { id: 1001, text: "Prepare code example" },
+        { id: 1002, text: "Prepare article outline" },
+      ],
+    };
+  },
+})
+```
+
+To render a list of `to-do` items themselves, we use a Vue component `todo-item` defined like this:
+
+```js
+Vue.component('todo-item', {
+  props: {
+      item: {
+      type: Object,
+      required: true,
+    },
+  },
+  data() {
+      return {
+        isDone: false,
+      };
+  },
+  template: `
+      <div>
+      <input type="checkbox" :id="item.id" v-model="isDone">
+      <label :for="item.id">{{ item.text }}</label>
+    </div>
+  `
+})
+```
+
+Notice we initialize the component’s local `isDone` variable to `false` since we want to make every `newly added to-do item` to be `“not done”`. Once we `first open` the app in the browser, we see the following:
+
+[!](images/4.jfif)
+
+let’s say we tick all of the items `“done”`:
+
+[!](images/5.jfif)
+
+This changes each of the component’s `isDone` variable to `true`. Now we click the `“Add new item”` button to add a new `“Write article”` to-do to the top, and we might be surprised to find this:
+
+[!](images/6.jfif)
+
+The issue lies in the fact that VueJS is `optimizing` `changes to the DOM` and `reusing the existing elements` (`patching them`) as much as possible. The `new item` was added to the top `in the same position` as the item `“Decide on article topic”` was placed before the new item was added. So `instead of` a new element being `created`, the `existing one` was `patched` with the `new “Write article” item`.
+
+Because the `old DOM element` was `reused` and the `new one was not created`, the component was `not initialized` with `isDone: false` and the `existing value` of `isDone` which is set to `true` is used. If we had any logic in the Vue hooks like `created()` or `mounted()`, those would `not` run either.
+
+On the other hand, the `“Prepare article outline”` item was `“pushed” off the bottom` and `ended up in a new position` that `didn’t exist before` in the DOM. So the `element` (`component`) was `re-created` and `isDone` was initialized to `false`. Again, this was not our intention.
+
+## Solution: use the :key
+```html
+<div id="app">
+  <todo-item v-for="todo in todos" :item="todo" :key="todo.id"> 
+  </todo-item>
+
+  <button @click="addTodo">
+    Add new item
+  </button>
+</div>
+```
+
+As you can see, we used the `id` of each to-do item as the `key`. This way, since the `id` is `unique` for each to-do item, we are effectively “showing” the algorithm `which items were there before the change`, and `which one was added`.
+
+Since the new to-do item has an `id=2000`, Vue knows that it’s a new item that `didn’t exist before` so it `creates a new component` to hold it and its `isDone` is initialized to `false`. For this simple example with `hard-coded` value { id: 2000, text: 'Write article' }, the button `should be clicked only once`, otherwise there would be `more items with the same id`, and that is `not allowed` either.
+
+As for the rest of the existing to-do items, since they have the keys with the same id values `as before we clicked the button`, Vue knows it should `keep the existing components` and `place them in new positions`. That’s why their `isDone` values `remain unchanged`. Now we get the result we originally expected:
+
+[!](images/7.jfif)
+
+## Common misconception
+uniqueness of items cannot be based on loop indices since those can be reused for new values (the ones, being `unshift`(ed) for example). That’s why it’s important to use a unique value like `id` for the `:key`.
+
+# Modules
+

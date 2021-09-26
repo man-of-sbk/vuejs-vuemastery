@@ -313,7 +313,7 @@ we can also do a conditional operation:
 ```
 
 # 7. Computed Properties
-a `computed property` is a property of a Vue instance, holding the returned value of its `special method` counterpart as well as having the `identical name` to the method itself. Different a normal method, this `special method` cache `data properties` used inside it (`reactive dependencies`). Thus, as long as the `dependencies` have not changed, multiple access to the `computed property` will immediately return the `previously returned value` of its `special method` counterpart without having to run the method again.
+a `computed property` is a property of a Vue instance, holding the returned value of its `special method` counterpart as well as having the `identical name` to the method itself. Different a normal method, this `special method` cache `data properties` used inside it (`reactive dependencies`). Thus, as long as the `dependencies` have not changed, `multiple access` to the `computed property` will immediately return the `previously returned value` of its `special method` counterpart without having to run the method again.
 
 `special methods` are defined inside the `computed` property of the argument object of the Vue function:
 
